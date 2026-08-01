@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Leaderboard — {{ round.name }}{% endblock %}
+{% block content %}
+<div class="dash-header">
+  <h1>🏆 Leaderboard — {{ round.name }}</h1>
+  <a class="btn btn-outline btn-sm" href="{{ url_for('admin_dashboard') }}">Back to Dashboard</a>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <tr><th>Rank</th><th>Participant</th><th>College</th><th>Average Score</th></tr>
+      {% for student, avg in leaderboard %}
+      <tr>
+        <td>#{{ loop.index }}</td>
+        <td>{{ student.name }}{% if student.team_name %} ({{ student.team_name }}){% endif %}</td>
+        <td>{{ student.college }}</td>
+        <td style="color:var(--amber);font-weight:700;">{{ "%.2f"|format(avg) }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" style="color:var(--muted);">No scores submitted yet for this round.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+{% endblock %}

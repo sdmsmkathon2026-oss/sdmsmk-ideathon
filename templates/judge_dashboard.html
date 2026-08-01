@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Judge Dashboard{% endblock %}
+{% block content %}
+<div class="dash-header">
+  <h1>Judge Panel — {{ judge.name }}</h1>
+  <a class="btn btn-outline btn-sm" href="{{ url_for('judge_logout') }}">Log Out</a>
+</div>
+
+{% if not rounds %}
+  <div class="card"><p style="color:var(--muted);">No rounds have been created by the admin yet. Please check back later.</p></div>
+{% elif not students %}
+  <div class="card"><p style="color:var(--muted);">No approved &amp; paid participants yet to score.</p></div>
+{% else %}
+<div class="card">
+  <h3>Submit / Update a Score</h3>
+  <form method="POST">
+    <label>Round</label>
+    <select name="round_id" required>
+      {% for r in rounds %}
+        <option value="{{ r.id }}">{{ r.name }}</option>
+      {% endfor %}
+    </select>
+
+    <label>Participant</label>
+    <select name="student_id" required>
+      {% for s in students %}
+        <option value="{{ s.id }}">{{ s.name }} — {{ s.college }} ({{ s.reg_type.title() }}{% if s.team_name %}: {{ s.team_name }}{% endif %})</option>
+      {% endfor %}
+    </select>
+
+    <label>Score (0–100)</label>
+    <input type="number" name="score" min="0" max="100" step="0.5" required>
+
+    <label>Remarks (optional)</label>
+    <textarea name="remarks" rows="2"></textarea>
+
+    <button type="submit" class="btn btn-primary btn-block" style="margin-top:22px;">Save Score</button>
+  </form>
+</div>
+
+<div class="card" style="margin-top:22px;">
+  <h3>Rounds Overview</h3>
+  <div class="table-wrap">
+    <table>
+      <tr><th>Round</th><th>Description</th></tr>
+      {% for r in rounds %}
+      <tr><td>{{ r.name }}</td><td style="color:var(--muted);">{{ r.description or '-' }}</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

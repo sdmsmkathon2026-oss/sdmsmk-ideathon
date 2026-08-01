@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Student Login — SDMSMK aThon 2026{% endblock %}
+{% block content %}
+<div class="form-wrap">
+  <div class="form-card">
+    <h2>Student Login</h2>
+    <p class="subtitle">Track your approval &amp; payment status</p>
+    <form method="POST">
+      <label>Email</label>
+      <input type="email" name="email" required>
+      <label>Password</label>
+      <input type="password" name="password" required>
+      <button type="submit" class="btn btn-primary btn-block" style="margin-top:24px;">Log In</button>
+    </form>
+    <div class="form-footer">
+      New here? <a href="{{ url_for('student_register') }}">Create an account</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

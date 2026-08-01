@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block content %}
+<div class="dash-header">
+  <h1>Admin Control Center</h1>
+  <a class="btn btn-outline btn-sm" href="{{ url_for('admin_logout') }}">Log Out</a>
+</div>
+
+<div class="stat-row">
+  <div class="stat"><div class="num">{{ students|length }}</div><div class="label">Students</div></div>
+  <div class="stat"><div class="num">{{ students|selectattr('payment_status','equalto','paid')|list|length }}</div><div class="label">Paid</div></div>
+  <div class="stat"><div class="num">{{ org_members|length }}</div><div class="label">Organizing Team</div></div>
+  <div class="stat"><div class="num">{{ judges|length }}</div><div class="label">Judges</div></div>
+  <div class="stat"><div class="num">{{ rounds|length }}</div><div class="label">Rounds</div></div>
+</div>
+
+<div class="tabs">
+  <a href="#students" class="active">Students</a>
+  <a href="#orgteam">Organizing Team</a>
+  <a href="#judges">Judges</a>
+  <a href="#rounds">Rounds &amp; Leaderboards</a>
+</div>
+
+<!-- STUDENTS -->
+<div class="card" id="students">
+  <h3>Student Registrations</h3>
+  <div class="table-wrap">
+    <table>
+      <tr>
+        <th>Name</th><th>Email</th><th>College</th><th>Type</th><th>Fee</th>
+        <th>Status</th><th>Payment</th><th>Actions</th>
+      </tr>
+      {% for s in students %}
+      <tr>
+        <td>{{ s.name }}</td>
+        <td>{{ s.email }}</td>
+        <td>{{ s.college }}</td>
+        <td>{{ s.reg_type.title() }}</td>
+        <td>₹{{ s.fee }}</td>
+        <td>
+          {% if s.status == 'approved' %}<span class="badge approved">Approved</span>
+          {% else %}<span class="badge pending">Pending</span>{% endif %}
+        </td>
+        <td>
+          {% if s.payment_status == 'paid' %}<span class="badge paid">Paid</span>
+          {% else %}<span class="badge pending">Pending</span>{% endif %}
+        </td>
+        <td style="white-space:nowrap;">
+          {% if s.status != 'approved' %}
+          <form class="inline-form" method="POST" action="{{ url_for('admin_approve', entity='student', entity_id=s.id) }}">
+            <button class="btn btn-sm btn-primary" type="submit">Approve</button>
+          </form>
+          {% endif %}
+          {% if s.payment_status != 'paid' %}
+          <form class="inline-form" method="POST" action="{{ url_for('admin_mark_payment', student_id=s.id) }}">
+            <button class="btn btn-sm btn-secondary" type="submit">Mark Paid</button>
+          </form>
+          {% else %}
+          <form class="inline-form" method="POST" action="{{ url_for('admin_send_confirmation', student_id=s.id) }}">
+            <button class="btn btn-sm btn-outline" type="submit">Send Confirmation Email</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+
+<!-- ORG TEAM -->
+<div class="card" id="orgteam" style="margin-top:22px;">
+  <h3>Organizing Team</h3>
+  <div class="table-wrap">
+    <table>
+      <tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr>
+      {% for m in org_members %}
+      <tr>
+        <td>{{ m.name }}</td><td>{{ m.email }}</td><td>{{ m.role }}</td>
+        <td>{% if m.status == 'approved' %}<span class="badge approved">Approved</span>{% else %}<span class="badge pending">Pending</span>{% endif %}</td>
+        <td>
+          {% if m.status != 'approved' %}
+          <form class="inline-form" method="POST" action="{{ url_for('admin_approve', entity='org', entity_id=m.id) }}">
+            <button class="btn btn-sm btn-primary" type="submit">Approve</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+
+<!-- JUDGES -->
+<div class="card" id="judges" style="margin-top:22px;">
+  <h3>Judges</h3>
+  <div class="table-wrap">
+    <table>
+      <tr><th>Name</th><th>Email</th><th>Expertise</th><th>Status</th><th>Actions</th></tr>
+      {% for j in judges %}
+      <tr>
+        <td>{{ j.name }}</td><td>{{ j.email }}</td><td>{{ j.expertise or '-' }}</td>
+        <td>{% if j.status == 'approved' %}<span class="badge approved">Approved</span>{% else %}<span class="badge pending">Pending</span>{% endif %}</td>
+        <td>
+          {% if j.status != 'approved' %}
+          <form class="inline-form" method="POST" action="{{ url_for('admin_approve', entity='judge', entity_id=j.id) }}">
+            <button class="btn btn-sm btn-primary" type="submit">Approve</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+
+<!-- ROUNDS -->
+<div class="card" id="rounds" style="margin-top:22px;">
+  <h3>Create a Round</h3>
+  <form method="POST" action="{{ url_for('admin_create_round') }}">
+    <label>Round Name</label>
+    <input type="text" name="name" placeholder="e.g. Round 1 — Idea Pitch" required>
+    <label>Description</label>
+    <input type="text" name="description" placeholder="Short description shown to judges">
+    <button type="submit" class="btn btn-primary" style="margin-top:18px;">Create Round</button>
+  </form>
+
+  <h3 style="margin-top:30px;">Existing Rounds</h3>
+  <div class="table-wrap">
+    <table>
+      <tr><th>Round</th><th>Description</th><th>Leaderboard</th></tr>
+      {% for r in rounds %}
+      <tr>
+        <td>{{ r.name }}</td>
+        <td style="color:var(--muted);">{{ r.description or '-' }}</td>
+        <td><a href="{{ url_for('admin_leaderboard', round_id=r.id) }}" class="btn btn-sm btn-outline">View</a></td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+{% endblock %}

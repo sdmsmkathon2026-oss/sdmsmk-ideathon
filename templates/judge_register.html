@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Judge Registration{% endblock %}
+{% block content %}
+<div class="form-wrap">
+  <div class="form-card">
+    <h2>Judge Registration</h2>
+    <p class="subtitle">Evaluate ideas across every round</p>
+    <form method="POST">
+      <label>Full Name</label>
+      <input type="text" name="name" required>
+
+      <label>Email</label>
+      <input type="email" name="email" required>
+
+      <label>Phone Number</label>
+      <input type="tel" name="phone" required pattern="[0-9]{10}">
+
+      <label>Area of Expertise</label>
+      <input type="text" name="expertise" placeholder="e.g. Gen AI, IoT, Deep Learning">
+
+      <label>Create Password</label>
+      <input type="password" name="password" required minlength="6">
+
+      <button type="submit" class="btn btn-outline btn-block" style="margin-top:24px;">Submit Registration</button>
+    </form>
+    <div class="form-footer">
+      Already registered? <a href="{{ url_for('judge_login') }}">Log in here</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

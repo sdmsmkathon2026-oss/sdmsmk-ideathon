@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Contact Us — SDMSMK aThon 2026{% endblock %}
+{% block content %}
+
+<section class="contact-hero">
+  <div class="eyebrow">📞 We're here to help</div>
+  <h1>Contact Us</h1>
+  <p>Have a question about registration, payment, or the event on {{ event_date }}?
+     Reach out to the staff coordinators or our organizing partner below.</p>
+</section>
+
+<section class="section" style="padding-top:10px;">
+
+  <div class="section-title-row">
+    <h2>👑 Chief Patrons</h2>
+    <div class="line"></div>
+  </div>
+  <div class="patron-list">
+    {% for p in chief_patrons %}
+    <div class="patron-item chief">
+      <div class="name">{{ p.name }}</div>
+      <div class="role">{{ p.role }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="section-title-row">
+    <h2>🌟 Patrons</h2>
+    <div class="line"></div>
+  </div>
+  <div class="patron-list">
+    {% for p in patrons %}
+    <div class="patron-item">
+      <div class="name">{{ p.name }}</div>
+      <div class="role">{{ p.role }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="section-title-row">
+    <h2>🎓 Staff Coordinators</h2>
+    <div class="line"></div>
+  </div>
+  <div class="contact-grid">
+    {% for c in staff_coordinators %}
+    <div class="contact-card">
+      <div class="avatar-circle c{{ loop.index }}">{{ c.name.split(' ')|map('first')|join('')|upper }}</div>
+      <div class="contact-info">
+        <h4>{{ c.name }}</h4>
+        <div class="role">{{ c.role }}</div>
+        <a class="phone-link" href="tel:{{ c.phone.replace(' ', '') }}">📱 {{ c.phone }}</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="section-title-row">
+    <h2>🏢 Event Organizing Company</h2>
+    <div class="line"></div>
+  </div>
+  <div class="contact-grid">
+    {% for c in company_contacts %}
+    <div class="contact-card glow-magenta">
+      <div class="avatar-circle c{{ (loop.index % 4) + 1 }}">{{ c.name.split(' ')|map('first')|join('')|upper }}</div>
+      <div class="contact-info">
+        <h4>{{ c.name }}</h4>
+        <div class="role">{{ c.role }}</div>
+        <a class="phone-link" href="tel:{{ c.phone.replace(' ', '') }}">📱 {{ c.phone }}</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="qr-panel" style="margin-top:30px;">
+    <img src="{{ url_for('static', filename='images/anitha_logo.png') }}" alt="Anitha Technologies & Services" style="width:150px;height:auto;background:#fff;border-radius:12px;padding:10px;">
+    <div style="max-width:380px;">
+      <h3 style="margin-top:0;color:var(--text);">Anitha Technologies &amp; Services</h3>
+      <p style="color:var(--muted);font-size:14px;">
+        Official event organizing partner for the SDMSMK aThon 2026. For sponsorships,
+        collaborations, or event logistics queries, reach out directly via the numbers above.
+      </p>
+    </div>
+  </div>
+
+</section>
+
+{% endblock %}
