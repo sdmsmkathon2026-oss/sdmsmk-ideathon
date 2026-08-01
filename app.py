@@ -147,7 +147,7 @@ def index():
 def contact():
     chief_patrons = [
         {"name": "Sri. M. Rajaiah", "role": "President — SAGTE"},
-        {"name": "Sri. P. Lakshman Rao", "role": "Secretary — SAGTE"},
+        {"name": "Sri. P. Lakshmana Rao", "role": "Secretary — SAGTE"},
         {"name": "Sri. S. Venkateswara Rao", "role": "Treasurer — SAGTE"},
         {"name": "Sri Ch. Krishna Rao", "role": "Vice President — SAGTE & Convenor, SDMSMK"},
         {"name": "Sri L. K. Mohana Rao", "role": "Administrative Academic Officer — SDMSMK"},
@@ -161,7 +161,7 @@ def contact():
     patrons = [
         {"name": "Dr. P. V. Durgavathi", "role": "Principal"},
         {"name": "Smt. M. Praveena", "role": "Convenor, HOD Department of Computer Science"},
-        {"name": "Kum. J. Parasmal Kanti", "role": "HOD, Department of Electronics"},
+        {"name": "Kum. J. Parasmai Kanti", "role": "HOD, Department of Electronics"},
         {"name": "V. Siva Krishnaveni", "role": "Co-Convenor, Asst. Professor, Computer Science"},
         {"name": "P. Harika", "role": "Assistant Professor, Department of Computer Science"},
         {"name": "Ch. Manohari", "role": "Lecturer, Department of Electronics"},
