@@ -12,6 +12,7 @@ Configure SMTP credentials as environment variables before running:
 """
 
 import os
+import threading
 from datetime import datetime
 from functools import wraps
 
@@ -60,6 +61,8 @@ class Student(db.Model):
     status = db.Column(db.String(20), default="pending")        # pending / approved
     payment_status = db.Column(db.String(20), default="pending")  # pending / paid
     payment_screenshot = db.Column(db.String(255))
+    email_status = db.Column(db.String(20), default="not_sent")  # not_sent / sending / sent / failed
+    email_error = db.Column(db.String(300))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     @property
@@ -147,7 +150,7 @@ def index():
 def contact():
     chief_patrons = [
         {"name": "Sri. M. Rajaiah", "role": "President — SAGTE"},
-        {"name": "Sri. P. Lakshmana Rao", "role": "Secretary — SAGTE"},
+        {"name": "Sri. P. Lakshman Rao", "role": "Secretary — SAGTE"},
         {"name": "Sri. S. Venkateswara Rao", "role": "Treasurer — SAGTE"},
         {"name": "Sri Ch. Krishna Rao", "role": "Vice President — SAGTE & Convenor, SDMSMK"},
         {"name": "Sri L. K. Mohana Rao", "role": "Administrative Academic Officer — SDMSMK"},
@@ -161,7 +164,7 @@ def contact():
     patrons = [
         {"name": "Dr. P. V. Durgavathi", "role": "Principal"},
         {"name": "Smt. M. Praveena", "role": "Convenor, HOD Department of Computer Science"},
-        {"name": "Kum. J. Parasmai Kanti", "role": "HOD, Department of Electronics"},
+        {"name": "Kum. J. Parasmal Kanti", "role": "HOD, Department of Electronics"},
         {"name": "V. Siva Krishnaveni", "role": "Co-Convenor, Asst. Professor, Computer Science"},
         {"name": "P. Harika", "role": "Assistant Professor, Department of Computer Science"},
         {"name": "Ch. Manohari", "role": "Lecturer, Department of Electronics"},
@@ -430,11 +433,34 @@ def admin_send_confirmation(student_id):
     if student.payment_status != "paid":
         flash("Mark the payment as paid before sending a confirmation email.", "error")
         return redirect(url_for("admin_dashboard"))
-    try:
-        send_confirmation_email(student, EVENT_NAME, EVENT_DATE)
-        flash(f"Confirmation email sent to {student.email}.", "success")
-    except Exception as exc:
-        flash(f"Could not send email: {exc}", "error")
+
+    student.email_status = "sending"
+    student.email_error = None
+    db.session.commit()
+
+    app_obj = app  # captured for the thread's app-context
+
+    def _send_in_background(student_id, event_name, event_date):
+        with app_obj.app_context():
+            s = Student.query.get(student_id)
+            try:
+                send_confirmation_email(s, event_name, event_date)
+                s.email_status = "sent"
+                s.email_error = None
+            except Exception as exc:
+                s.email_status = "failed"
+                s.email_error = str(exc)[:290]
+                print(f"[admin_send_confirmation] Failed for {s.email}: {exc}")
+            db.session.commit()
+
+    thread = threading.Thread(
+        target=_send_in_background,
+        args=(student.id, EVENT_NAME, EVENT_DATE),
+        daemon=True,
+    )
+    thread.start()
+
+    flash(f"Sending confirmation email to {student.email} in the background — refresh in a few seconds to see the result.", "success")
     return redirect(url_for("admin_dashboard"))
 
 
