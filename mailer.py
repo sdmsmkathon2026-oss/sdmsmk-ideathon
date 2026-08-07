@@ -141,7 +141,7 @@ def send_confirmation_email(student, event_name, event_date):
 
     # Attempt 1: STARTTLS on port 587 (standard)
     try:
-        with smtplib.SMTP(SMTP_HOST, 587, timeout=15) as server:
+        with smtplib.SMTP(SMTP_HOST, 587, timeout=8) as server:
             server.starttls()
             server.login(SMTP_EMAIL, SMTP_PASSWORD)
             server.sendmail(SMTP_EMAIL, [student.email], msg.as_string())
@@ -153,7 +153,7 @@ def send_confirmation_email(student, event_name, event_date):
 
     # Attempt 2: SSL on port 465 (fallback, some networks block 587)
     try:
-        with smtplib.SMTP_SSL(SMTP_HOST, 465, timeout=15) as server:
+        with smtplib.SMTP_SSL(SMTP_HOST, 465, timeout=8) as server:
             server.login(SMTP_EMAIL, SMTP_PASSWORD)
             server.sendmail(SMTP_EMAIL, [student.email], msg.as_string())
         print("[mailer] Sent successfully via SSL:465")
