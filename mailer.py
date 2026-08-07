@@ -108,7 +108,17 @@ def _confirmation_html(student, event_name, event_date):
 
 
 def send_confirmation_email(student, event_name, event_date):
-    """Send the payment confirmation email to a student. Raises on failure."""
+    """
+    Send the payment confirmation email to a student. Raises on total failure
+    (after trying both STARTTLS on 587 and SSL on 465), so the caller can show
+    the error to the admin. Also prints diagnostics to stdout/logs.
+    """
+    if SMTP_EMAIL == "your-email@gmail.com" or SMTP_PASSWORD == "your-app-password":
+        raise RuntimeError(
+            "SMTP_EMAIL / SMTP_PASSWORD environment variables are not set "
+            "(mailer.py is still using the placeholder default values)."
+        )
+
     msg = MIMEMultipart("alternative")
     msg["Subject"] = f"✅ Payment Confirmed — {event_name}"
     msg["From"] = f"{SENDER_NAME} <{SMTP_EMAIL}>"
@@ -125,7 +135,32 @@ def send_confirmation_email(student, event_name, event_date):
     msg.attach(MIMEText(text_body, "plain"))
     msg.attach(MIMEText(_confirmation_html(student, event_name, event_date), "html"))
 
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-        server.starttls()
-        server.login(SMTP_EMAIL, SMTP_PASSWORD)
-        server.sendmail(SMTP_EMAIL, [student.email], msg.as_string())
+    print(f"[mailer] Attempting to send to {student.email} using account {SMTP_EMAIL} ...")
+
+    last_error = None
+
+    # Attempt 1: STARTTLS on port 587 (standard)
+    try:
+        with smtplib.SMTP(SMTP_HOST, 587, timeout=15) as server:
+            server.starttls()
+            server.login(SMTP_EMAIL, SMTP_PASSWORD)
+            server.sendmail(SMTP_EMAIL, [student.email], msg.as_string())
+        print("[mailer] Sent successfully via STARTTLS:587")
+        return
+    except Exception as exc:
+        last_error = exc
+        print(f"[mailer] STARTTLS:587 failed -> {type(exc).__name__}: {exc}")
+
+    # Attempt 2: SSL on port 465 (fallback, some networks block 587)
+    try:
+        with smtplib.SMTP_SSL(SMTP_HOST, 465, timeout=15) as server:
+            server.login(SMTP_EMAIL, SMTP_PASSWORD)
+            server.sendmail(SMTP_EMAIL, [student.email], msg.as_string())
+        print("[mailer] Sent successfully via SSL:465")
+        return
+    except Exception as exc:
+        last_error = exc
+        print(f"[mailer] SSL:465 failed -> {type(exc).__name__}: {exc}")
+
+    # Both attempts failed — raise the most recent error so the admin sees it
+    raise last_error
