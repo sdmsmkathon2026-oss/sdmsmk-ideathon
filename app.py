@@ -12,6 +12,7 @@ Configure SMTP credentials as environment variables before running:
 """
 
 import os
+import threading
 from datetime import datetime
 from functools import wraps
 
@@ -29,7 +30,15 @@ from mailer import send_confirmation_email
 # ---------------------------------------------------------------------------
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "change-this-secret-key")
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///ideathon.db"
+
+# Use an external Postgres database (e.g. Neon, Supabase) when DATABASE_URL is set —
+# this is REQUIRED on Render's free tier, since its local disk is wiped on every
+# restart/redeploy/sleep-wake cycle and SQLite data would be lost otherwise.
+_db_url = os.environ.get("DATABASE_URL", "sqlite:///ideathon.db")
+if _db_url.startswith("postgres://"):
+    # SQLAlchemy requires the "postgresql://" scheme; some providers still hand out "postgres://"
+    _db_url = _db_url.replace("postgres://", "postgresql://", 1)
+app.config["SQLALCHEMY_DATABASE_URI"] = _db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
@@ -40,7 +49,7 @@ INDIVIDUAL_FEE = 200
 GROUP_FEE = 800
 
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin@123")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Anitha11082004")
 
 
 # ---------------------------------------------------------------------------
@@ -60,6 +69,8 @@ class Student(db.Model):
     status = db.Column(db.String(20), default="pending")        # pending / approved
     payment_status = db.Column(db.String(20), default="pending")  # pending / paid
     payment_screenshot = db.Column(db.String(255))
+    email_status = db.Column(db.String(20), default="not_sent")  # not_sent / sending / sent / failed
+    email_error = db.Column(db.String(300))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     @property
@@ -147,7 +158,7 @@ def index():
 def contact():
     chief_patrons = [
         {"name": "Sri. M. Rajaiah", "role": "President — SAGTE"},
-        {"name": "Sri. P. Lakshmana Rao", "role": "Secretary — SAGTE"},
+        {"name": "Sri. P. Lakshman Rao", "role": "Secretary — SAGTE"},
         {"name": "Sri. S. Venkateswara Rao", "role": "Treasurer — SAGTE"},
         {"name": "Sri Ch. Krishna Rao", "role": "Vice President — SAGTE & Convenor, SDMSMK"},
         {"name": "Sri L. K. Mohana Rao", "role": "Administrative Academic Officer — SDMSMK"},
@@ -161,7 +172,7 @@ def contact():
     patrons = [
         {"name": "Dr. P. V. Durgavathi", "role": "Principal"},
         {"name": "Smt. M. Praveena", "role": "Convenor, HOD Department of Computer Science"},
-        {"name": "Kum. J. Parasmai Kanti", "role": "HOD, Department of Electronics"},
+        {"name": "Kum. J. Parasmal Kanti", "role": "HOD, Department of Electronics"},
         {"name": "V. Siva Krishnaveni", "role": "Co-Convenor, Asst. Professor, Computer Science"},
         {"name": "P. Harika", "role": "Assistant Professor, Department of Computer Science"},
         {"name": "Ch. Manohari", "role": "Lecturer, Department of Electronics"},
@@ -430,11 +441,34 @@ def admin_send_confirmation(student_id):
     if student.payment_status != "paid":
         flash("Mark the payment as paid before sending a confirmation email.", "error")
         return redirect(url_for("admin_dashboard"))
-    try:
-        send_confirmation_email(student, EVENT_NAME, EVENT_DATE)
-        flash(f"Confirmation email sent to {student.email}.", "success")
-    except Exception as exc:
-        flash(f"Could not send email: {exc}", "error")
+
+    student.email_status = "sending"
+    student.email_error = None
+    db.session.commit()
+
+    app_obj = app  # captured for the thread's app-context
+
+    def _send_in_background(student_id, event_name, event_date):
+        with app_obj.app_context():
+            s = Student.query.get(student_id)
+            try:
+                send_confirmation_email(s, event_name, event_date)
+                s.email_status = "sent"
+                s.email_error = None
+            except Exception as exc:
+                s.email_status = "failed"
+                s.email_error = str(exc)[:290]
+                print(f"[admin_send_confirmation] Failed for {s.email}: {exc}")
+            db.session.commit()
+
+    thread = threading.Thread(
+        target=_send_in_background,
+        args=(student.id, EVENT_NAME, EVENT_DATE),
+        daemon=True,
+    )
+    thread.start()
+
+    flash(f"Sending confirmation email to {student.email} in the background — refresh in a few seconds to see the result.", "success")
     return redirect(url_for("admin_dashboard"))
 
 
@@ -469,9 +503,13 @@ def admin_logout():
     return redirect(url_for("index"))
 
 
+# Create tables on startup. This runs at import time so it works both with
+# `python app.py` locally AND under gunicorn in production (gunicorn imports
+# this module directly and never executes the `if __name__ == "__main__"` block).
+with app.app_context():
+    db.create_all()
+
+
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
     app.run(debug=True, host="0.0.0.0", port=5000)
-
