@@ -49,7 +49,7 @@ INDIVIDUAL_FEE = 200
 GROUP_FEE = 800
 
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Anitha11082004")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin@123")
 
 
 # ---------------------------------------------------------------------------
