@@ -28,7 +28,7 @@
     <table>
       <tr>
         <th>Name</th><th>Email</th><th>College</th><th>Type</th><th>Fee</th>
-        <th>Status</th><th>Payment</th><th>Actions</th>
+        <th>Status</th><th>Payment</th><th>Confirmation Mail</th><th>Actions</th>
       </tr>
       {% for s in students %}
       <tr>
@@ -45,6 +45,14 @@
           {% if s.payment_status == 'paid' %}<span class="badge paid">Paid</span>
           {% else %}<span class="badge pending">Pending</span>{% endif %}
         </td>
+        <td>
+          {% if s.email_status == 'sent' %}<span class="badge paid">Sent ✅</span>
+          {% elif s.email_status == 'sending' %}<span class="badge pending">Sending…</span>
+          {% elif s.email_status == 'failed' %}
+            <span class="badge" style="background:rgba(255,84,112,.15);color:var(--red);border:1px solid var(--red);">Failed</span>
+            {% if s.email_error %}<div style="color:var(--red);font-size:11px;max-width:220px;margin-top:4px;">{{ s.email_error }}</div>{% endif %}
+          {% else %}<span class="badge pending">Not Sent</span>{% endif %}
+        </td>
         <td style="white-space:nowrap;">
           {% if s.status != 'approved' %}
           <form class="inline-form" method="POST" action="{{ url_for('admin_approve', entity='student', entity_id=s.id) }}">
@@ -57,9 +65,15 @@
           </form>
           {% else %}
           <form class="inline-form" method="POST" action="{{ url_for('admin_send_confirmation', student_id=s.id) }}">
-            <button class="btn btn-sm btn-outline" type="submit">Send Confirmation Email</button>
+            <button class="btn btn-sm btn-outline" type="submit">
+              {% if s.email_status == 'sent' %}Resend Email{% else %}Send Confirmation Email{% endif %}
+            </button>
           </form>
           {% endif %}
+          <form class="inline-form" method="POST" action="{{ url_for('admin_delete', entity='student', entity_id=s.id) }}"
+                onsubmit="return confirm('Delete student {{ s.name }}? This permanently removes their registration and scores. This cannot be undone.');">
+            <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+          </form>
         </td>
       </tr>
       {% endfor %}
@@ -83,6 +97,10 @@
             <button class="btn btn-sm btn-primary" type="submit">Approve</button>
           </form>
           {% endif %}
+          <form class="inline-form" method="POST" action="{{ url_for('admin_delete', entity='org', entity_id=m.id) }}"
+                onsubmit="return confirm('Delete organizing team member {{ m.name }}? This cannot be undone.');">
+            <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+          </form>
         </td>
       </tr>
       {% endfor %}
@@ -106,6 +124,10 @@
             <button class="btn btn-sm btn-primary" type="submit">Approve</button>
           </form>
           {% endif %}
+          <form class="inline-form" method="POST" action="{{ url_for('admin_delete', entity='judge', entity_id=j.id) }}"
+                onsubmit="return confirm('Delete judge {{ j.name }}? This also removes any scores they submitted. This cannot be undone.');">
+            <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+          </form>
         </td>
       </tr>
       {% endfor %}
