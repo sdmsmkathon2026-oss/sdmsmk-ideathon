@@ -178,7 +178,7 @@ def contact():
         {"name": "Ch. Manohari", "role": "Lecturer, Department of Electronics"},
     ]
     company_contacts = [
-        {"name": "V. Uma Manikanta", "role": "CEO & Director, Anitha Technologies & Services", "phone": "91823 65689"},
+        {"name": "V. Uma Manikanta", "role": "CEO & Director, Anitha Technologies & Services", "phone": "91823 65899"},
         {"name": "Anitha Technologies & Services", "role": "Event Organizing Company — General Enquiries", "phone": "72076 60201"},
     ]
     return render_template(
@@ -431,6 +431,40 @@ def admin_mark_payment(student_id):
     student.payment_status = "paid"
     db.session.commit()
     flash(f"Payment marked as PAID for {student.name}.", "success")
+    return redirect(url_for("admin_dashboard"))
+
+
+@app.route("/admin/delete/<entity>/<int:entity_id>", methods=["POST"])
+@login_required("admin")
+def admin_delete(entity, entity_id):
+    if entity == "student":
+        obj = Student.query.get_or_404(entity_id)
+        # Remove any scores tied to this student first to avoid a foreign-key error
+        Score.query.filter_by(student_id=obj.id).delete()
+        name = obj.name
+        db.session.delete(obj)
+        db.session.commit()
+        flash(f"Student '{name}' has been deleted.", "success")
+
+    elif entity == "org":
+        obj = OrgMember.query.get_or_404(entity_id)
+        name = obj.name
+        db.session.delete(obj)
+        db.session.commit()
+        flash(f"Organizing team member '{name}' has been deleted.", "success")
+
+    elif entity == "judge":
+        obj = Judge.query.get_or_404(entity_id)
+        # Remove any scores this judge submitted first to avoid a foreign-key error
+        Score.query.filter_by(judge_id=obj.id).delete()
+        name = obj.name
+        db.session.delete(obj)
+        db.session.commit()
+        flash(f"Judge '{name}' has been deleted.", "success")
+
+    else:
+        flash("Unknown account type.", "error")
+
     return redirect(url_for("admin_dashboard"))
 
 
