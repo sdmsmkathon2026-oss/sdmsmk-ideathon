@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Judge Dashboard{% endblock %}
+{% block content %}
+<div class="dash-header">
+  <h1>Judge Panel — {{ judge.name }}</h1>
+  <a class="btn btn-outline btn-sm" href="{{ url_for('judge_logout') }}">Log Out</a>
+</div>
+
+<div class="stat-row">
+  <div class="stat"><div class="num">{{ judge.room or 'Not Set' }}</div><div class="label">Your Room</div></div>
+  <div class="stat"><div class="num">{{ students|length }}</div><div class="label">Students in Your Room</div></div>
+  <div class="stat"><div class="num">{{ my_shortlist_ids|length }}</div><div class="label">Shortlisted by You</div></div>
+</div>
+
+{% if not judge.room %}
+  <div class="card">
+    <p style="color:var(--muted);">No room has been assigned to your account yet. Please contact the admin —
+    once a room is set, you'll see only the participants presenting in that room here.</p>
+  </div>
+{% elif not rounds %}
+  <div class="card"><p style="color:var(--muted);">No rounds have been created by the admin yet. Please check back later.</p></div>
+{% elif not students %}
+  <div class="card"><p style="color:var(--muted);">No approved &amp; paid participants have been assigned to <strong>{{ judge.room }}</strong> yet.</p></div>
+{% else %}
+
+<div class="card">
+  <h3>Submit / Update a Score — {{ judge.room }}</h3>
+  <form method="POST" id="score-form">
+    <label>Round</label>
+    <select name="round_id" id="round-select" required onchange="updateRoundInfo()">
+      {% for r in rounds %}
+        <option value="{{ r.id }}" data-max="{{ r.max_score }}" data-instructions="{{ r.instructions|e }}">{{ r.name }}</option>
+      {% endfor %}
+    </select>
+
+    <div id="round-instructions" style="color:var(--muted);font-size:13px;margin-top:8px;white-space:pre-line;"></div>
+
+    <label>Participant (only showing students in {{ judge.room }})</label>
+    <select name="student_id" required>
+      {% for s in students %}
+        <option value="{{ s.id }}">{{ s.name }} — {{ s.college }} ({{ s.reg_type.title() }}{% if s.team_name %}: {{ s.team_name }}{% endif %})</option>
+      {% endfor %}
+    </select>
+
+    <label>Marks <span id="scale-label" style="color:var(--muted);font-weight:400;"></span></label>
+    <select name="score" id="score-select" required></select>
+
+    <label>Remarks (optional)</label>
+    <textarea name="remarks" rows="2"></textarea>
+
+    <button type="submit" class="btn btn-primary btn-block" style="margin-top:22px;">Save Score</button>
+  </form>
+</div>
+
+<div class="card" style="margin-top:22px;">
+  <h3>Students in {{ judge.room }} — Shortlist</h3>
+  <div class="table-wrap">
+    <table>
+      <tr><th>Name</th><th>College</th><th>Type</th><th>Shortlist</th></tr>
+      {% for s in students %}
+      <tr>
+        <td>{{ s.name }}{% if s.team_name %} ({{ s.team_name }}){% endif %}</td>
+        <td>{{ s.college }}</td>
+        <td>{{ s.reg_type.title() }}</td>
+        <td>
+          <form class="inline-form" method="POST" action="{{ url_for('judge_shortlist', student_id=s.id) }}">
+            {% if s.id in my_shortlist_ids %}
+              <button type="submit" class="btn btn-sm btn-secondary">★ Shortlisted — Remove</button>
+            {% else %}
+              <button type="submit" class="btn btn-sm btn-outline">☆ Shortlist</button>
+            {% endif %}
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+
+<div class="card" style="margin-top:22px;">
+  <h3>Rounds Overview</h3>
+  <div class="table-wrap">
+    <table>
+      <tr><th>Round</th><th>Description</th><th>Scale</th></tr>
+      {% for r in rounds %}
+      <tr>
+        <td>{{ r.name }}</td>
+        <td style="color:var(--muted);">{{ r.description or '-' }}</td>
+        <td><span class="badge approved">0 – {{ r.max_score }}</span></td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+
+<script>
+  function updateRoundInfo(){
+    const roundSelect = document.getElementById('round-select');
+    const opt = roundSelect.options[roundSelect.selectedIndex];
+    const max = parseInt(opt.getAttribute('data-max')) || 10;
+    const instructions = opt.getAttribute('data-instructions') || '';
+
+    document.getElementById('round-instructions').textContent = instructions;
+    document.getElementById('scale-label').textContent = '(0 – ' + max + ')';
+
+    const scoreSelect = document.getElementById('score-select');
+    scoreSelect.innerHTML = '';
+    for (let i = 0; i <= max; i++){
+      const o = document.createElement('option');
+      o.value = i;
+      o.textContent = i;
+      scoreSelect.appendChild(o);
+    }
+  }
+  updateRoundInfo();
+</script>
+{% endif %}
+{% endblock %}

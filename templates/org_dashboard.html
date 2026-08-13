@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Organizing Team Dashboard{% endblock %}
+{% block content %}
+<div class="dash-header">
+  <h1>Organizing Dashboard — {{ member.name }}</h1>
+  <a class="btn btn-outline btn-sm" href="{{ url_for('org_logout') }}">Log Out</a>
+</div>
+
+{% if member.status != 'approved' %}
+  <div class="flash pending" style="background:rgba(255,210,63,.12);border:1px solid var(--amber);color:var(--amber);">
+    Your organizing-team account is pending admin approval. Some data may be limited until approved.
+  </div>
+{% endif %}
+
+<div class="stat-row">
+  <div class="stat"><div class="num">{{ students|length }}</div><div class="label">Total Registrations</div></div>
+  <div class="stat"><div class="num">{{ students|selectattr('status','equalto','approved')|list|length }}</div><div class="label">Approved</div></div>
+  <div class="stat"><div class="num">{{ students|selectattr('payment_status','equalto','paid')|list|length }}</div><div class="label">Paid</div></div>
+</div>
+
+<div class="card">
+  <h3>All Student Registrations</h3>
+  <div class="table-wrap">
+    <table>
+      <tr>
+        <th>Name</th><th>College</th><th>Type</th><th>Status</th><th>Payment</th>
+      </tr>
+      {% for s in students %}
+      <tr>
+        <td>{{ s.name }}</td>
+        <td>{{ s.college }}</td>
+        <td>{{ s.reg_type.title() }}</td>
+        <td>
+          {% if s.status == 'approved' %}<span class="badge approved">Approved</span>
+          {% else %}<span class="badge pending">Pending</span>{% endif %}
+        </td>
+        <td>
+          {% if s.payment_status == 'paid' %}<span class="badge paid">Paid</span>
+          {% else %}<span class="badge pending">Pending</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+{% endblock %}

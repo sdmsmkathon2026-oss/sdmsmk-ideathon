@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Student Registration — SDMSMK aThon 2026{% endblock %}
+{% block content %}
+<div class="form-wrap">
+  <div class="form-card">
+    <h2>Student Registration</h2>
+    <p class="subtitle">Individual ₹{{ individual_fee }} &nbsp;|&nbsp; Group ₹{{ group_fee }}</p>
+    <form method="POST">
+      <label>Full Name</label>
+      <input type="text" name="name" required>
+
+      <label>Email</label>
+      <input type="email" name="email" required>
+
+      <label>Phone Number</label>
+      <input type="tel" name="phone" required pattern="[0-9]{10}">
+
+      <label>College Name</label>
+      <input type="text" name="college" required>
+
+      <label>Batch (e.g. 2024-2027, CSE-A)</label>
+      <input type="text" name="batch" required>
+
+      <label>Registration Type</label>
+      <div class="radio-row">
+        <label><input type="radio" name="reg_type" value="individual" checked onclick="toggleTeam(false)"> Individual (₹{{ individual_fee }})</label>
+        <label><input type="radio" name="reg_type" value="group" onclick="toggleTeam(true)"> Group (₹{{ group_fee }})</label>
+      </div>
+
+      <div id="team-fields" style="display:none;">
+        <label>Team Name</label>
+        <input type="text" name="team_name">
+        <label>Team Members (comma separated)</label>
+        <textarea name="team_members" rows="2"></textarea>
+      </div>
+
+      <label>Create Password</label>
+      <input type="password" name="password" required minlength="6">
+
+      <button type="submit" class="btn btn-primary btn-block" style="margin-top:24px;">Submit Registration</button>
+    </form>
+    <div class="form-footer">
+      Already registered? <a href="{{ url_for('student_login') }}">Log in here</a>
+    </div>
+  </div>
+</div>
+<script>
+  function toggleTeam(show){
+    document.getElementById('team-fields').style.display = show ? 'block' : 'none';
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Leaderboard — {{ round.name }}{% endblock %}
+{% block content %}
+<div class="dash-header">
+  <h1>🏆 Leaderboard — {{ round.name }}</h1>
+  <a class="btn btn-outline btn-sm" href="{{ url_for('admin_dashboard') }}">Back to Dashboard</a>
+</div>
+
+{% if round.instructions %}
+<div class="card" style="margin-bottom:18px;">
+  <h3 style="margin-top:0;">Scoring Instructions</h3>
+  <p style="color:var(--muted);white-space:pre-line;">{{ round.instructions }}</p>
+</div>
+{% endif %}
+
+<div class="card">
+  <h3 style="margin-top:0;">Scale: 0 – {{ round.max_score }} points</h3>
+  <div class="table-wrap">
+    <table>
+      <tr><th>Rank</th><th>Participant</th><th>College</th><th>Room</th><th>Average Score</th></tr>
+      {% for student, avg in leaderboard %}
+      <tr>
+        <td>#{{ loop.index }}</td>
+        <td>{{ student.name }}{% if student.team_name %} ({{ student.team_name }}){% endif %}</td>
+        <td>{{ student.college }}</td>
+        <td>{{ student.room or '-' }}</td>
+        <td style="color:var(--amber);font-weight:700;">{{ "%.2f"|format(avg) }} / {{ round.max_score }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" style="color:var(--muted);">No scores submitted yet for this round.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+{% endblock %}

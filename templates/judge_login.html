@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Judge Login{% endblock %}
+{% block content %}
+<div class="form-wrap">
+  <div class="form-card">
+    <h2>Judge Login</h2>
+    <p class="subtitle">Post scores for each round</p>
+    <form method="POST">
+      <label>Email</label>
+      <input type="email" name="email" required>
+      <label>Password</label>
+      <input type="password" name="password" required>
+      <button type="submit" class="btn btn-outline btn-block" style="margin-top:24px;">Log In</button>
+    </form>
+    <div class="form-footer">
+      New here? <a href="{{ url_for('judge_register') }}">Create an account</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
