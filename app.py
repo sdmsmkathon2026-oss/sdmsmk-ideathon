@@ -71,6 +71,7 @@ class Student(db.Model):
     payment_screenshot = db.Column(db.String(255))
     email_status = db.Column(db.String(20), default="not_sent")  # not_sent / sending / sent / failed
     email_error = db.Column(db.String(300))
+    room = db.Column(db.String(50))  # presentation room, assigned by admin, e.g. "Room 101"
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     @property
@@ -95,6 +96,7 @@ class Judge(db.Model):
     email = db.Column(db.String(150), unique=True, nullable=False)
     phone = db.Column(db.String(15), nullable=False)
     expertise = db.Column(db.String(150))
+    room = db.Column(db.String(50))  # room this judge is stationed in for presentations
     password_hash = db.Column(db.String(255), nullable=False)
     status = db.Column(db.String(20), default="pending")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -122,6 +124,22 @@ class Score(db.Model):
 
     __table_args__ = (
         db.UniqueConstraint("round_id", "student_id", "judge_id", name="uniq_score_per_judge"),
+    )
+
+
+class Shortlist(db.Model):
+    """A judge's shortlist pick for a student in their room."""
+    id = db.Column(db.Integer, primary_key=True)
+    judge_id = db.Column(db.Integer, db.ForeignKey("judge.id"), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey("student.id"), nullable=False)
+    room = db.Column(db.String(50))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    judge = db.relationship("Judge")
+    student = db.relationship("Student")
+
+    __table_args__ = (
+        db.UniqueConstraint("judge_id", "student_id", name="uniq_shortlist_per_judge"),
     )
 
 
@@ -318,6 +336,7 @@ def judge_register():
             email=email,
             phone=request.form["phone"].strip(),
             expertise=request.form.get("expertise", "").strip(),
+            room=request.form.get("room", "").strip(),
             password_hash=generate_password_hash(request.form["password"]),
         )
         db.session.add(judge)
@@ -350,7 +369,16 @@ def judge_login():
 def judge_dashboard():
     judge = Judge.query.get_or_404(session["user_id"])
     rounds = Round.query.order_by(Round.created_at).all()
-    students = Student.query.filter_by(status="approved", payment_status="paid").order_by(Student.name).all()
+
+    # Only show students assigned to this judge's room. If the judge has no
+    # room set yet, fall back to showing nobody (so admin must assign a room first).
+    if judge.room:
+        students = (
+            Student.query.filter_by(status="approved", payment_status="paid", room=judge.room)
+            .order_by(Student.name).all()
+        )
+    else:
+        students = []
 
     if request.method == "POST":
         round_id = int(request.form["round_id"])
@@ -372,10 +400,39 @@ def judge_dashboard():
     my_scores = Score.query.filter_by(judge_id=judge.id).all()
     scored_keys = {(s.round_id, s.student_id) for s in my_scores}
 
+    my_shortlist_ids = {
+        sl.student_id for sl in Shortlist.query.filter_by(judge_id=judge.id).all()
+    }
+
     return render_template(
         "judge_dashboard.html",
         judge=judge, rounds=rounds, students=students, scored_keys=scored_keys,
+        my_shortlist_ids=my_shortlist_ids,
     )
+
+
+@app.route("/judge/shortlist/<int:student_id>", methods=["POST"])
+@login_required("judge")
+def judge_shortlist(student_id):
+    judge = Judge.query.get_or_404(session["user_id"])
+    student = Student.query.get_or_404(student_id)
+
+    # Safety check: a judge can only shortlist students from their own room
+    if student.room != judge.room:
+        flash("You can only shortlist students assigned to your room.", "error")
+        return redirect(url_for("judge_dashboard"))
+
+    existing = Shortlist.query.filter_by(judge_id=judge.id, student_id=student.id).first()
+    if existing:
+        db.session.delete(existing)
+        db.session.commit()
+        flash(f"Removed {student.name} from your shortlist.", "success")
+    else:
+        db.session.add(Shortlist(judge_id=judge.id, student_id=student.id, room=judge.room))
+        db.session.commit()
+        flash(f"Shortlisted {student.name}.", "success")
+
+    return redirect(url_for("judge_dashboard"))
 
 
 @app.route("/judge/logout")
@@ -405,9 +462,40 @@ def admin_dashboard():
     org_members = OrgMember.query.order_by(OrgMember.created_at.desc()).all()
     judges = Judge.query.order_by(Judge.created_at.desc()).all()
     rounds = Round.query.order_by(Round.created_at).all()
+
+    # ---- Build room-wise breakdown: for every room that has a judge and/or
+    # students assigned, list the judges stationed there, the students placed
+    # there, and which of those students have been shortlisted (and by whom).
+    all_rooms = sorted({
+        j.room for j in judges if j.room
+    } | {
+        s.room for s in students if s.room
+    })
+
+    shortlist_rows = Shortlist.query.all()
+    # student_id -> list of judge names who shortlisted them
+    shortlisted_by_student = {}
+    for sl in shortlist_rows:
+        shortlisted_by_student.setdefault(sl.student_id, []).append(sl.judge.name)
+
+    rooms_data = []
+    for room in all_rooms:
+        room_judges = [j for j in judges if j.room == room]
+        room_students = [s for s in students if s.room == room]
+        rooms_data.append({
+            "room": room,
+            "judges": room_judges,
+            "students": room_students,
+            "shortlisted_by_student": shortlisted_by_student,
+        })
+
+    unassigned_students = [s for s in students if not s.room]
+
     return render_template(
         "admin_dashboard.html",
         students=students, org_members=org_members, judges=judges, rounds=rounds,
+        rooms_data=rooms_data, unassigned_students=unassigned_students,
+        all_rooms=all_rooms,
     )
 
 
@@ -434,13 +522,28 @@ def admin_mark_payment(student_id):
     return redirect(url_for("admin_dashboard"))
 
 
+@app.route("/admin/assign_room/<int:student_id>", methods=["POST"])
+@login_required("admin")
+def admin_assign_room(student_id):
+    student = Student.query.get_or_404(student_id)
+    room = request.form.get("room", "").strip()
+    student.room = room or None
+    db.session.commit()
+    if room:
+        flash(f"{student.name} assigned to {room}.", "success")
+    else:
+        flash(f"Room cleared for {student.name}.", "success")
+    return redirect(url_for("admin_dashboard") + "#rooms")
+
+
 @app.route("/admin/delete/<entity>/<int:entity_id>", methods=["POST"])
 @login_required("admin")
 def admin_delete(entity, entity_id):
     if entity == "student":
         obj = Student.query.get_or_404(entity_id)
-        # Remove any scores tied to this student first to avoid a foreign-key error
+        # Remove any scores/shortlist entries tied to this student first to avoid a foreign-key error
         Score.query.filter_by(student_id=obj.id).delete()
+        Shortlist.query.filter_by(student_id=obj.id).delete()
         name = obj.name
         db.session.delete(obj)
         db.session.commit()
@@ -455,8 +558,9 @@ def admin_delete(entity, entity_id):
 
     elif entity == "judge":
         obj = Judge.query.get_or_404(entity_id)
-        # Remove any scores this judge submitted first to avoid a foreign-key error
+        # Remove any scores/shortlist entries this judge made first to avoid a foreign-key error
         Score.query.filter_by(judge_id=obj.id).delete()
+        Shortlist.query.filter_by(judge_id=obj.id).delete()
         name = obj.name
         db.session.delete(obj)
         db.session.commit()
