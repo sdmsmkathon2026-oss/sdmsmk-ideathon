@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}SDMSMK aThon 2026{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="logos">
+    <img src="{{ url_for('static', filename='images/college_logo.png') }}" alt="College Logo">
+    <div>
+      <div class="brand">SDMSMK aThon 2026</div>
+      <small>Dept. of CS &amp; Electronics &middot; 12-Hour Ideathon</small>
+    </div>
+  </div>
+  <div class="nav-links">
+    <a href="{{ url_for('index') }}">Home</a>
+    <a href="{{ url_for('contact') }}">Contact</a>
+    <a href="{{ url_for('student_login') }}">Student</a>
+    <a href="{{ url_for('org_login') }}">Organizing Team</a>
+    <a href="{{ url_for('judge_login') }}">Judge</a>
+    <a href="{{ url_for('admin_login') }}">Admin</a>
+    <a class="cta" href="{{ url_for('student_register') }}">Register Now</a>
+  </div>
+</nav>
+
+<div class="container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div style="max-width:640px;margin:24px auto 0;">
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+</div>
+
+{% block content %}{% endblock %}
+
+<footer>
+  &copy; 2026 Sri Durga Malleswara Siddhartha Mahila Kalasala, Vijayawada &middot; Department of Computer Science &amp; Department of Electronics<br>
+  Event Organized in association with Anitha Technologies &amp; Services
+</footer>
+
+</body>
+</html>

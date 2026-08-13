@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}My Dashboard — SDMSMK aThon 2026{% endblock %}
+{% block content %}
+<div class="dash-header">
+  <h1>Welcome, {{ student.name }} 👋</h1>
+  <a class="btn btn-outline btn-sm" href="{{ url_for('student_logout') }}">Log Out</a>
+</div>
+
+<div class="stat-row">
+  <div class="stat">
+    <div class="num">{{ student.reg_type.title() }}</div>
+    <div class="label">Registration Type</div>
+  </div>
+  <div class="stat">
+    <div class="num">₹{{ student.fee }}</div>
+    <div class="label">Fee</div>
+  </div>
+  <div class="stat">
+    <div class="num">{{ event_date }}</div>
+    <div class="label">Event Date</div>
+  </div>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <h3>Account Status</h3>
+    {% if student.status == 'approved' %}
+      <span class="badge approved">Approved ✅</span>
+    {% else %}
+      <span class="badge pending">Pending Admin Approval ⏳</span>
+    {% endif %}
+    <p style="color:var(--muted);font-size:13px;margin-top:14px;">
+      Once the admin approves your account, you're eligible to be confirmed for the ideathon.
+    </p>
+  </div>
+
+  <div class="card">
+    <h3>Payment Status</h3>
+    {% if student.payment_status == 'paid' %}
+      <span class="badge paid">Payment Successful ✅</span>
+      <p style="color:var(--muted);font-size:13px;margin-top:14px;">
+        You're all set! A confirmation email has been (or will be) sent to <strong>{{ student.email }}</strong>.
+      </p>
+    {% else %}
+      <span class="badge pending">Payment Pending / Not Verified ⏳</span>
+      <p style="color:var(--muted);font-size:13px;margin-top:14px;">
+        Complete your payment via the QR code on the home page, then wait for the admin to verify it.
+      </p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card" style="margin-top:22px;">
+  <h3>My Details</h3>
+  <div class="table-wrap">
+    <table>
+      <tr><th>College</th><td>{{ student.college }}</td></tr>
+      <tr><th>Batch</th><td>{{ student.batch }}</td></tr>
+      <tr><th>Phone</th><td>{{ student.phone }}</td></tr>
+      {% if student.reg_type == 'group' %}
+      <tr><th>Team Name</th><td>{{ student.team_name or '-' }}</td></tr>
+      <tr><th>Team Members</th><td>{{ student.team_members or '-' }}</td></tr>
+      {% endif %}
+    </table>
+  </div>
+</div>
+{% endblock %}
