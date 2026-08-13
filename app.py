@@ -204,7 +204,7 @@ def contact():
         {"name": "Ch. Manohari", "role": "Lecturer, Department of Electronics"},
     ]
     company_contacts = [
-        {"name": "V. Uma Manikanta", "role": "CEO & Director, Anitha Technologies & Services", "phone": "91823 65899"},
+        {"name": "V. Uma Manikanta", "role": "CEO & Director, Anitha Technologies & Services", "phone": "91823 65689"},
         {"name": "Anitha Technologies & Services", "role": "Event Organizing Company — General Enquiries", "phone": "72076 60201"},
     ]
     return render_template(
