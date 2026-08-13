@@ -106,7 +106,15 @@ class Round(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
     description = db.Column(db.String(300))
+    instructions = db.Column(db.Text)          # scoring guidance shown to judges
+    max_score = db.Column(db.Integer, default=10)  # judges pick a whole number 0..max_score from a dropdown
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def score_options(self):
+        """List of whole-number marks judges can pick from, 0 up to max_score."""
+        top = self.max_score or 10
+        return list(range(0, top + 1))
 
 
 class Score(db.Model):
@@ -386,6 +394,11 @@ def judge_dashboard():
         score_val = float(request.form["score"])
         remarks = request.form.get("remarks", "").strip()
 
+        rnd = Round.query.get_or_404(round_id)
+        if score_val < 0 or score_val > (rnd.max_score or 10):
+            flash(f"Score must be between 0 and {rnd.max_score} for this round.", "error")
+            return redirect(url_for("judge_dashboard"))
+
         existing = Score.query.filter_by(round_id=round_id, student_id=student_id, judge_id=judge.id).first()
         if existing:
             existing.score = score_val
@@ -613,11 +626,22 @@ def admin_send_confirmation(student_id):
 @app.route("/admin/create_round", methods=["POST"])
 @login_required("admin")
 def admin_create_round(name=None):
-    r = Round(name=request.form["name"].strip(), description=request.form.get("description", "").strip())
+    try:
+        max_score = int(request.form.get("max_score", 10))
+    except (TypeError, ValueError):
+        max_score = 10
+    max_score = max(1, min(max_score, 100))
+
+    r = Round(
+        name=request.form["name"].strip(),
+        description=request.form.get("description", "").strip(),
+        instructions=request.form.get("instructions", "").strip(),
+        max_score=max_score,
+    )
     db.session.add(r)
     db.session.commit()
-    flash(f"Round '{r.name}' created.", "success")
-    return redirect(url_for("admin_dashboard"))
+    flash(f"Round '{r.name}' created with a 0–{max_score} scoring scale.", "success")
+    return redirect(url_for("admin_dashboard") + "#rounds")
 
 
 @app.route("/admin/leaderboard/<int:round_id>")
